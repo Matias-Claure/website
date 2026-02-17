@@ -1,24 +1,38 @@
 {
   "extension": "ai-booking-interface",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "site": {
     "name": "Northline Appointments",
     "base_url": "http://localhost:8000",
     "booking_page": "/index.html",
-    "admin_page": "/admin.html"
+    "admin_page": "/admin.html",
+    "machine_contract": "/agent-booking.json"
   },
   "capabilities": {
     "create_booking": true,
+    "validate_booking": true,
     "list_bookings": true,
     "delete_booking": true,
     "admin_unlock_required_for_delete": true
   },
   "transport": {
-    "mode": "browser-form",
-    "submission": {
-      "type": "html_form_submit",
-      "form_selector": "#booking-form",
-      "status_selector": "#form-status"
+    "preferred": {
+      "mode": "javascript_api",
+      "global_object": "window.NorthlineBookingAPI",
+      "methods": {
+        "create_booking": "createBooking(payload)",
+        "validate_booking": "validateBooking(payload)",
+        "list_bookings": "getSortedBookings()",
+        "delete_booking": "deleteBookingById(id)"
+      }
+    },
+    "fallback": {
+      "mode": "browser-form",
+      "submission": {
+        "type": "html_form_submit",
+        "form_selector": "#booking-form",
+        "status_selector": "#form-status"
+      }
     },
     "storage": {
       "type": "localStorage",
@@ -29,9 +43,8 @@
     "admin": {
       "type": "passcode",
       "passcode": "admin123",
-      "login_form_selector": "#admin-login-form",
-      "passcode_selector": "#admin-passcode",
-      "submit_selector": "#admin-login-form button[type='submit']"
+      "unlock_method": "NorthlineBookingAPI.unlockAdmin(passcode)",
+      "is_unlocked_method": "NorthlineBookingAPI.isAdminUnlocked()"
     }
   },
   "booking_schema": {
@@ -43,21 +56,21 @@
       "date",
       "time"
     ],
+    "optional": [
+      "notes"
+    ],
     "fields": {
       "name": {
         "type": "string",
-        "min_length": 2,
-        "selector": "#name"
+        "min_length": 2
       },
       "email": {
         "type": "string",
-        "format": "email",
-        "selector": "#email"
+        "format": "email"
       },
       "phone": {
         "type": "string",
-        "pattern": "[0-9+()\\-\\s]{7,}",
-        "selector": "#phone"
+        "pattern": "[0-9+()\\-\\s]{7,}"
       },
       "service": {
         "type": "string",
@@ -66,19 +79,16 @@
           "Follow-up Session",
           "Premium Planning",
           "Virtual Meeting"
-        ],
-        "selector": "#service"
+        ]
       },
       "date": {
         "type": "string",
         "format": "date",
-        "selector": "#date",
         "rule": "must_be_today_or_future"
       },
       "time": {
         "type": "string",
         "format": "time",
-        "selector": "#time",
         "rules": [
           "must_be_between_09:00_and_17:00",
           "combined_datetime_must_be_in_future"
@@ -86,33 +96,28 @@
       },
       "notes": {
         "type": "string",
-        "required": false,
-        "selector": "#notes"
+        "required": false
       }
     }
   },
   "actions": {
     "create_booking": {
-      "steps": [
-        "open /index.html",
-        "fill fields from booking_schema.fields selectors",
-        "click button[type='submit'] inside #booking-form",
-        "read #form-status for confirmation"
+      "preferred_steps": [
+        "call NorthlineBookingAPI.validateBooking(payload)",
+        "if valid, call NorthlineBookingAPI.createBooking(payload)",
+        "read response.message for confirmation"
       ],
       "success_signal_contains": [
         "Booked for"
       ]
     },
     "list_bookings": {
-      "source": "localStorage:northline_bookings",
-      "fallback_dom_selector": "#booking-list li"
+      "source": "NorthlineBookingAPI.getSortedBookings()"
     },
     "delete_booking": {
       "steps": [
-        "open /admin.html",
-        "unlock admin via #admin-login-form",
-        "find row in #admin-booking-body",
-        "click button.table-action with matching data-id"
+        "call NorthlineBookingAPI.unlockAdmin('admin123')",
+        "call NorthlineBookingAPI.deleteBookingById(id)"
       ]
     }
   },

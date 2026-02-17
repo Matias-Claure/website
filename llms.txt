@@ -1,0 +1,11 @@
+# Northline Appointments - AI Access
+
+For machine clients, use `/agent-booking.json` as the primary contract.
+
+Preferred booking path:
+1. Load `window.NorthlineBookingAPI.getSpec()` from `/index.html` or `/admin.html`.
+2. Validate payload with `NorthlineBookingAPI.validateBooking(payload)`.
+3. Submit with `NorthlineBookingAPI.createBooking(payload)`.
+4. Read `response.ok` and `response.message`.
+
+Do not scrape the visual layout when API methods are available.

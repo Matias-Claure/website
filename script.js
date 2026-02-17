@@ -2,9 +2,7 @@ const form = document.getElementById("booking-form");
 const statusEl = document.getElementById("form-status");
 const bookingList = document.getElementById("booking-list");
 const dateInput = document.getElementById("date");
-const timeInput = document.getElementById("time");
-
-const STORAGE_KEY = "northline_bookings";
+const bookingAPI = window.NorthlineBookingAPI;
 
 const today = new Date();
 const yyyy = today.getFullYear();
@@ -14,42 +12,12 @@ if (dateInput) {
   dateInput.min = `${yyyy}-${mm}-${dd}`;
 }
 
-function loadBookings() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? [];
-    return parsed.map((booking) => ({
-      ...booking,
-      id: booking.id || crypto.randomUUID(),
-    }));
-  } catch {
-    return [];
-  }
-}
-
-function saveBookings(bookings) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
-}
-
-function formatDateTime(dateStr, timeStr) {
-  const date = new Date(`${dateStr}T${timeStr}`);
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function getSortedBookings() {
-  return loadBookings()
-    .slice()
-    .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`));
-}
-
 function renderBookings() {
   if (!bookingList) {
     return;
   }
 
-  const bookings = getSortedBookings();
+  const bookings = bookingAPI.getSortedBookings();
   bookingList.innerHTML = "";
 
   if (!bookings.length) {
@@ -67,19 +35,11 @@ function renderBookings() {
     title.className = "booking-title";
     title.textContent = `${booking.name} - ${booking.service}`;
     meta.className = "booking-meta";
-    meta.textContent = `${formatDateTime(booking.date, booking.time)} | ${booking.email}`;
+    meta.textContent = `${bookingAPI.formatDateTime(booking.date, booking.time)} | ${booking.email}`;
 
     li.append(title, meta);
     bookingList.appendChild(li);
   });
-}
-
-function isBusinessHours(timeStr) {
-  const [hour, minute] = timeStr.split(":").map(Number);
-  const totalMinutes = hour * 60 + minute;
-  const open = 9 * 60;
-  const close = 17 * 60;
-  return totalMinutes >= open && totalMinutes <= close;
 }
 
 if (form) {
@@ -93,14 +53,8 @@ if (form) {
       return;
     }
 
-    if (!isBusinessHours(timeInput.value)) {
-      statusEl.textContent = "Please select a time between 9:00 AM and 5:00 PM.";
-      return;
-    }
-
     const data = new FormData(form);
-    const booking = {
-      id: crypto.randomUUID(),
+    const bookingInput = {
       name: data.get("name").toString().trim(),
       email: data.get("email").toString().trim(),
       phone: data.get("phone").toString().trim(),
@@ -110,22 +64,25 @@ if (form) {
       notes: data.get("notes").toString().trim(),
     };
 
-    const selectedDate = new Date(`${booking.date}T${booking.time}`);
-    if (selectedDate <= new Date()) {
-      statusEl.textContent = "Please choose a future date and time.";
+    const created = bookingAPI.createBooking(bookingInput);
+    if (!created.ok) {
+      statusEl.textContent =
+        created.errors.time ||
+        created.errors.date_time ||
+        created.errors.date ||
+        created.errors.service ||
+        created.errors.email ||
+        created.errors.phone ||
+        created.errors.name ||
+        "Please complete all required fields correctly.";
       return;
     }
 
-    const bookings = loadBookings();
-    bookings.push(booking);
-    saveBookings(bookings);
-
-    statusEl.textContent = `Booked for ${formatDateTime(booking.date, booking.time)}.`;
+    statusEl.textContent = created.message;
     form.reset();
     dateInput.min = `${yyyy}-${mm}-${dd}`;
     renderBookings();
   });
 }
 
-saveBookings(loadBookings());
 renderBookings();

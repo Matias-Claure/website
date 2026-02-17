@@ -8,6 +8,14 @@
       name="description"
       content="Book your appointment online in under a minute."
     />
+    <meta name="ai:booking-contract" content="/agent-booking.json" />
+    <link
+      rel="alternate"
+      type="application/json"
+      href="agent-booking.json"
+      title="Northline AI Booking Contract"
+    />
+    <link rel="alternate" type="text/plain" href="llms.txt" title="LLMs Access Guide" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -89,6 +97,7 @@
       </section>
     </main>
 
+    <script src="booking-api.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

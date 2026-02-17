@@ -6,44 +6,11 @@ const adminSearch = document.getElementById("admin-search");
 const adminBookingBody = document.getElementById("admin-booking-body");
 const clearBookingsBtn = document.getElementById("clear-bookings-btn");
 const adminLogoutBtn = document.getElementById("admin-logout-btn");
-
-const STORAGE_KEY = "northline_bookings";
-const ADMIN_SESSION_KEY = "northline_admin_unlocked";
-const ADMIN_PASSCODE = "admin123";
-
-function loadBookings() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? [];
-    return parsed.map((booking) => ({
-      ...booking,
-      id: booking.id || crypto.randomUUID(),
-    }));
-  } catch {
-    return [];
-  }
-}
-
-function saveBookings(bookings) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
-}
-
-function formatDateTime(dateStr, timeStr) {
-  const date = new Date(`${dateStr}T${timeStr}`);
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function getSortedBookings() {
-  return loadBookings()
-    .slice()
-    .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`));
-}
+const bookingAPI = window.NorthlineBookingAPI;
 
 function renderAdminBookings() {
   const query = adminSearch.value.trim().toLowerCase();
-  const bookings = getSortedBookings().filter((booking) => {
+  const bookings = bookingAPI.getSortedBookings().filter((booking) => {
     if (!query) {
       return true;
     }
@@ -71,7 +38,7 @@ function renderAdminBookings() {
     const values = [
       booking.name,
       booking.service,
-      formatDateTime(booking.date, booking.time),
+      bookingAPI.formatDateTime(booking.date, booking.time),
       booking.email,
       booking.phone,
     ];
@@ -95,15 +62,7 @@ function renderAdminBookings() {
 }
 
 function isAdminUnlocked() {
-  return sessionStorage.getItem(ADMIN_SESSION_KEY) === "1";
-}
-
-function setAdminUnlocked(value) {
-  if (value) {
-    sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
-  } else {
-    sessionStorage.removeItem(ADMIN_SESSION_KEY);
-  }
+  return bookingAPI.isAdminUnlocked();
 }
 
 function renderAdminState() {
@@ -124,17 +83,17 @@ adminLoginForm.addEventListener("submit", (event) => {
   event.preventDefault();
   adminStatus.textContent = "";
 
-  if (adminPasscodeInput.value !== ADMIN_PASSCODE) {
-    adminStatus.textContent = "Incorrect passcode.";
+  const unlocked = bookingAPI.unlockAdmin(adminPasscodeInput.value);
+  if (!unlocked.ok) {
+    adminStatus.textContent = unlocked.message;
     return;
   }
 
-  setAdminUnlocked(true);
   renderAdminState();
 });
 
 adminLogoutBtn.addEventListener("click", () => {
-  setAdminUnlocked(false);
+  bookingAPI.lockAdmin();
   renderAdminState();
 });
 
@@ -148,7 +107,7 @@ clearBookingsBtn.addEventListener("click", () => {
     return;
   }
 
-  saveBookings([]);
+  bookingAPI.clearBookings();
   renderAdminBookings();
 });
 
@@ -158,10 +117,8 @@ adminBookingBody.addEventListener("click", (event) => {
     return;
   }
 
-  const bookings = loadBookings().filter((booking) => booking.id !== target.dataset.id);
-  saveBookings(bookings);
+  bookingAPI.deleteBookingById(target.dataset.id);
   renderAdminBookings();
 });
 
-saveBookings(loadBookings());
 renderAdminState();
