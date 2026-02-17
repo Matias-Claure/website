@@ -1,6 +1,6 @@
 {
   "extension": "ai-booking-interface",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "site": {
     "name": "Northline Appointments",
     "base_url": "http://localhost:8000",
@@ -17,34 +17,42 @@
   },
   "transport": {
     "preferred": {
-      "mode": "javascript_api",
-      "global_object": "window.NorthlineBookingAPI",
-      "methods": {
-        "create_booking": "createBooking(payload)",
-        "validate_booking": "validateBooking(payload)",
-        "list_bookings": "getSortedBookings()",
-        "delete_booking": "deleteBookingById(id)"
-      }
-    },
-    "fallback": {
-      "mode": "browser-form",
-      "submission": {
-        "type": "html_form_submit",
-        "form_selector": "#booking-form",
-        "status_selector": "#form-status"
+      "mode": "http_json",
+      "endpoints": {
+        "create_booking": {
+          "method": "POST",
+          "path": "/api/bookings",
+          "content_type": "application/json"
+        },
+        "list_bookings": {
+          "method": "GET",
+          "path": "/api/bookings"
+        },
+        "delete_booking": {
+          "method": "DELETE",
+          "path_template": "/api/bookings/{id}",
+          "required_headers": [
+            "x-admin-passcode"
+          ]
+        }
       }
     },
     "storage": {
-      "type": "localStorage",
-      "key": "northline_bookings"
+      "type": "server_file",
+      "path": "/data/bookings.json"
     }
   },
   "auth": {
     "admin": {
       "type": "passcode",
       "passcode": "admin123",
-      "unlock_method": "NorthlineBookingAPI.unlockAdmin(passcode)",
-      "is_unlocked_method": "NorthlineBookingAPI.isAdminUnlocked()"
+      "unlock_endpoint": {
+        "method": "POST",
+        "path": "/api/admin/unlock",
+        "body": {
+          "passcode": "string"
+        }
+      }
     }
   },
   "booking_schema": {
@@ -103,21 +111,21 @@
   "actions": {
     "create_booking": {
       "preferred_steps": [
-        "call NorthlineBookingAPI.validateBooking(payload)",
-        "if valid, call NorthlineBookingAPI.createBooking(payload)",
-        "read response.message for confirmation"
+        "validate payload against booking_schema",
+        "POST /api/bookings with JSON body",
+        "expect 201 with { ok: true, booking, message }"
       ],
       "success_signal_contains": [
-        "Booked for"
+        "Booking created"
       ]
     },
     "list_bookings": {
-      "source": "NorthlineBookingAPI.getSortedBookings()"
+      "source": "GET /api/bookings"
     },
     "delete_booking": {
       "steps": [
-        "call NorthlineBookingAPI.unlockAdmin('admin123')",
-        "call NorthlineBookingAPI.deleteBookingById(id)"
+        "POST /api/admin/unlock with passcode",
+        "DELETE /api/bookings/{id} with x-admin-passcode header"
       ]
     }
   },

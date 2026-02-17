@@ -1,7 +1,7 @@
 (function initNorthlineBookingAPI(global) {
-  const STORAGE_KEY = "northline_bookings";
   const ADMIN_SESSION_KEY = "northline_admin_unlocked";
   const ADMIN_PASSCODE = "admin123";
+  const API_BASE = "/api";
   const SERVICES = [
     "Consultation",
     "Follow-up Session",
@@ -12,26 +12,27 @@
   const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
   const TIME_PATTERN = /^\d{2}:\d{2}$/;
 
-  function loadBookings() {
-    try {
-      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? [];
-      return parsed.map((booking) => ({
-        ...booking,
-        id: booking.id || crypto.randomUUID(),
-      }));
-    } catch {
+  async function apiRequest(path, options = {}) {
+    const response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { ok: false, ...data };
+    }
+    return data;
+  }
+
+  async function getSortedBookings() {
+    const response = await apiRequest("/bookings", { method: "GET" });
+    if (!response.ok) {
       return [];
     }
-  }
-
-  function saveBookings(bookings) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
-  }
-
-  function getSortedBookings() {
-    return loadBookings()
-      .slice()
-      .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`));
+    return Array.isArray(response.bookings) ? response.bookings : [];
   }
 
   function formatDateTime(dateStr, timeStr) {
@@ -105,57 +106,72 @@
     };
   }
 
-  function createBooking(input) {
+  async function createBooking(input) {
     const validation = validateBooking(input);
     if (!validation.ok) {
       return validation;
     }
 
-    const bookings = loadBookings();
-    bookings.push(validation.booking);
-    saveBookings(bookings);
+    const response = await apiRequest("/bookings", {
+      method: "POST",
+      body: JSON.stringify(validation.booking),
+    });
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        errors: response.errors || {},
+        message: response.message || "Unable to create booking.",
+      };
+    }
 
     return {
       ok: true,
-      booking: validation.booking,
-      message: `Booked for ${formatDateTime(validation.booking.date, validation.booking.time)}.`,
+      booking: response.booking,
+      message: `Booked for ${formatDateTime(response.booking.date, response.booking.time)}.`,
     };
   }
 
-  function deleteBookingById(id) {
+  async function deleteBookingById(id, passcode = ADMIN_PASSCODE) {
     const bookingId = String(id || "");
     if (!bookingId) {
       return { ok: false, message: "Booking id is required." };
     }
 
-    const before = loadBookings();
-    const after = before.filter((booking) => booking.id !== bookingId);
-    saveBookings(after);
-
-    return {
-      ok: before.length !== after.length,
-      message:
-        before.length !== after.length ? "Booking deleted." : "No booking matched the id.",
-    };
+    const response = await apiRequest(`/bookings/${encodeURIComponent(bookingId)}`, {
+      method: "DELETE",
+      headers: { "x-admin-passcode": passcode },
+    });
+    return response.ok
+      ? response
+      : { ok: false, message: response.message || "Unable to delete booking." };
   }
 
-  function clearBookings() {
-    saveBookings([]);
-    return { ok: true, message: "All bookings removed." };
+  async function clearBookings(passcode = ADMIN_PASSCODE) {
+    const response = await apiRequest("/bookings", {
+      method: "DELETE",
+      headers: { "x-admin-passcode": passcode },
+    });
+    return response.ok
+      ? response
+      : { ok: false, message: response.message || "Unable to clear bookings." };
   }
 
   function isAdminUnlocked() {
     return sessionStorage.getItem(ADMIN_SESSION_KEY) === "1";
   }
 
-  function unlockAdmin(passcode) {
-    const isValid = String(passcode || "") === ADMIN_PASSCODE;
-    if (isValid) {
+  async function unlockAdmin(passcode) {
+    const response = await apiRequest("/admin/unlock", {
+      method: "POST",
+      body: JSON.stringify({ passcode: String(passcode || "") }),
+    });
+    if (response.ok) {
       sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
       return { ok: true, unlocked: true };
     }
     sessionStorage.removeItem(ADMIN_SESSION_KEY);
-    return { ok: false, unlocked: false, message: "Incorrect passcode." };
+    return { ok: false, unlocked: false, message: response.message || "Incorrect passcode." };
   }
 
   function lockAdmin() {
@@ -166,8 +182,9 @@
   function getSpec() {
     return {
       api_name: "NorthlineBookingAPI",
-      version: "1.1.0",
-      storage_key: STORAGE_KEY,
+      version: "2.0.0",
+      transport: "http_json",
+      api_base: API_BASE,
       methods: {
         create_booking: "NorthlineBookingAPI.createBooking(payload)",
         list_bookings: "NorthlineBookingAPI.getSortedBookings()",
@@ -190,11 +207,9 @@
   }
 
   global.NorthlineBookingAPI = {
-    STORAGE_KEY,
     ADMIN_PASSCODE,
     SERVICES,
-    loadBookings,
-    saveBookings,
+    API_BASE,
     getSortedBookings,
     formatDateTime,
     validateBooking,
@@ -206,6 +221,4 @@
     lockAdmin,
     getSpec,
   };
-
-  saveBookings(loadBookings());
 })(window);

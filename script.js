@@ -12,12 +12,12 @@ if (dateInput) {
   dateInput.min = `${yyyy}-${mm}-${dd}`;
 }
 
-function renderBookings() {
+async function renderBookings() {
   if (!bookingList) {
     return;
   }
 
-  const bookings = bookingAPI.getSortedBookings();
+  const bookings = await bookingAPI.getSortedBookings();
   bookingList.innerHTML = "";
 
   if (!bookings.length) {
@@ -43,7 +43,7 @@ function renderBookings() {
 }
 
 if (form) {
-  form.addEventListener("submit", (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
     statusEl.textContent = "";
 
@@ -64,16 +64,18 @@ if (form) {
       notes: data.get("notes").toString().trim(),
     };
 
-    const created = bookingAPI.createBooking(bookingInput);
+    const created = await bookingAPI.createBooking(bookingInput);
     if (!created.ok) {
+      const errors = created.errors || {};
       statusEl.textContent =
-        created.errors.time ||
-        created.errors.date_time ||
-        created.errors.date ||
-        created.errors.service ||
-        created.errors.email ||
-        created.errors.phone ||
-        created.errors.name ||
+        created.message ||
+        errors.time ||
+        errors.date_time ||
+        errors.date ||
+        errors.service ||
+        errors.email ||
+        errors.phone ||
+        errors.name ||
         "Please complete all required fields correctly.";
       return;
     }
@@ -81,7 +83,7 @@ if (form) {
     statusEl.textContent = created.message;
     form.reset();
     dateInput.min = `${yyyy}-${mm}-${dd}`;
-    renderBookings();
+    await renderBookings();
   });
 }
 

@@ -8,9 +8,9 @@ const clearBookingsBtn = document.getElementById("clear-bookings-btn");
 const adminLogoutBtn = document.getElementById("admin-logout-btn");
 const bookingAPI = window.NorthlineBookingAPI;
 
-function renderAdminBookings() {
+async function renderAdminBookings() {
   const query = adminSearch.value.trim().toLowerCase();
-  const bookings = bookingAPI.getSortedBookings().filter((booking) => {
+  const bookings = (await bookingAPI.getSortedBookings()).filter((booking) => {
     if (!query) {
       return true;
     }
@@ -65,60 +65,66 @@ function isAdminUnlocked() {
   return bookingAPI.isAdminUnlocked();
 }
 
-function renderAdminState() {
+async function renderAdminState() {
   const unlocked = isAdminUnlocked();
   adminControls.classList.toggle("hidden", !unlocked);
   adminLoginForm.classList.toggle("hidden", unlocked);
 
   if (unlocked) {
     adminStatus.textContent = "";
-    renderAdminBookings();
+    await renderAdminBookings();
   } else {
     adminPasscodeInput.value = "";
     adminSearch.value = "";
   }
 }
 
-adminLoginForm.addEventListener("submit", (event) => {
+adminLoginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   adminStatus.textContent = "";
 
-  const unlocked = bookingAPI.unlockAdmin(adminPasscodeInput.value);
+  const unlocked = await bookingAPI.unlockAdmin(adminPasscodeInput.value);
   if (!unlocked.ok) {
     adminStatus.textContent = unlocked.message;
     return;
   }
 
-  renderAdminState();
+  await renderAdminState();
 });
 
-adminLogoutBtn.addEventListener("click", () => {
+adminLogoutBtn.addEventListener("click", async () => {
   bookingAPI.lockAdmin();
-  renderAdminState();
+  await renderAdminState();
 });
 
-adminSearch.addEventListener("input", () => {
-  renderAdminBookings();
+adminSearch.addEventListener("input", async () => {
+  await renderAdminBookings();
 });
 
-clearBookingsBtn.addEventListener("click", () => {
+clearBookingsBtn.addEventListener("click", async () => {
   const confirmed = window.confirm("Delete all bookings?");
   if (!confirmed) {
     return;
   }
 
-  bookingAPI.clearBookings();
-  renderAdminBookings();
+  const result = await bookingAPI.clearBookings(bookingAPI.ADMIN_PASSCODE);
+  if (!result.ok) {
+    adminStatus.textContent = result.message;
+  }
+  await renderAdminBookings();
 });
 
-adminBookingBody.addEventListener("click", (event) => {
+adminBookingBody.addEventListener("click", async (event) => {
   const target = event.target;
   if (!(target instanceof HTMLButtonElement) || !target.dataset.id) {
     return;
   }
 
-  bookingAPI.deleteBookingById(target.dataset.id);
-  renderAdminBookings();
+  const result = await bookingAPI.deleteBookingById(target.dataset.id, bookingAPI.ADMIN_PASSCODE);
+  if (!result.ok) {
+    adminStatus.textContent = result.message;
+  }
+  await renderAdminBookings();
 });
 
 renderAdminState();

@@ -3,9 +3,13 @@
 For machine clients, use `/agent-booking.json` as the primary contract.
 
 Preferred booking path:
-1. Load `window.NorthlineBookingAPI.getSpec()` from `/index.html` or `/admin.html`.
-2. Validate payload with `NorthlineBookingAPI.validateBooking(payload)`.
-3. Submit with `NorthlineBookingAPI.createBooking(payload)`.
-4. Read `response.ok` and `response.message`.
+1. Validate payload using schema from `/agent-booking.json`.
+2. `POST /api/bookings` with `application/json`.
+3. Read JSON response `{ ok, booking, message }`.
+4. `GET /api/bookings` to list existing bookings.
 
-Do not scrape the visual layout when API methods are available.
+Admin actions:
+- `POST /api/admin/unlock` with `{ "passcode": "..." }`.
+- `DELETE /api/bookings/{id}` with `x-admin-passcode` header.
+
+Do not scrape the visual layout when API endpoints are available.
