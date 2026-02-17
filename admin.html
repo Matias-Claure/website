@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Northline Admin</title>
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="description" content="Administrative booking controls for Northline." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=DM+Serif+Display:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="grain"></div>
+    <main class="layout">
+      <section class="hero">
+        <p class="eyebrow">Restricted access</p>
+        <h1>Northline Admin</h1>
+        <p class="subtitle">Booking management for authorized staff only.</p>
+      </section>
+
+      <section class="panel admin" aria-labelledby="admin-title">
+        <h2 id="admin-title">Admin Panel</h2>
+        <p class="muted">Enter admin passcode to unlock booking controls.</p>
+
+        <form id="admin-login-form" class="admin-login" novalidate>
+          <label>
+            Admin Passcode
+            <input
+              type="password"
+              id="admin-passcode"
+              name="admin-passcode"
+              required
+              autocomplete="off"
+            />
+          </label>
+          <button type="submit">Unlock Admin</button>
+          <p id="admin-status" role="status" aria-live="polite"></p>
+        </form>
+
+        <div id="admin-controls" class="admin-controls hidden" aria-live="polite">
+          <div class="admin-toolbar">
+            <label>
+              Search
+              <input
+                type="search"
+                id="admin-search"
+                placeholder="Filter by name, service, or email"
+              />
+            </label>
+            <button id="admin-logout-btn" type="button" class="ghost-btn">Lock</button>
+            <button id="clear-bookings-btn" type="button" class="ghost-btn danger-btn">
+              Clear All
+            </button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Service</th>
+                  <th>Date & Time</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="admin-booking-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="admin.js"></script>
+  </body>
+</html>

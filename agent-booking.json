@@ -1,0 +1,130 @@
+{
+  "extension": "ai-booking-interface",
+  "version": "1.0.0",
+  "site": {
+    "name": "Northline Appointments",
+    "base_url": "http://localhost:8000",
+    "booking_page": "/index.html",
+    "admin_page": "/admin.html"
+  },
+  "capabilities": {
+    "create_booking": true,
+    "list_bookings": true,
+    "delete_booking": true,
+    "admin_unlock_required_for_delete": true
+  },
+  "transport": {
+    "mode": "browser-form",
+    "submission": {
+      "type": "html_form_submit",
+      "form_selector": "#booking-form",
+      "status_selector": "#form-status"
+    },
+    "storage": {
+      "type": "localStorage",
+      "key": "northline_bookings"
+    }
+  },
+  "auth": {
+    "admin": {
+      "type": "passcode",
+      "passcode": "admin123",
+      "login_form_selector": "#admin-login-form",
+      "passcode_selector": "#admin-passcode",
+      "submit_selector": "#admin-login-form button[type='submit']"
+    }
+  },
+  "booking_schema": {
+    "required": [
+      "name",
+      "email",
+      "phone",
+      "service",
+      "date",
+      "time"
+    ],
+    "fields": {
+      "name": {
+        "type": "string",
+        "min_length": 2,
+        "selector": "#name"
+      },
+      "email": {
+        "type": "string",
+        "format": "email",
+        "selector": "#email"
+      },
+      "phone": {
+        "type": "string",
+        "pattern": "[0-9+()\\-\\s]{7,}",
+        "selector": "#phone"
+      },
+      "service": {
+        "type": "string",
+        "enum": [
+          "Consultation",
+          "Follow-up Session",
+          "Premium Planning",
+          "Virtual Meeting"
+        ],
+        "selector": "#service"
+      },
+      "date": {
+        "type": "string",
+        "format": "date",
+        "selector": "#date",
+        "rule": "must_be_today_or_future"
+      },
+      "time": {
+        "type": "string",
+        "format": "time",
+        "selector": "#time",
+        "rules": [
+          "must_be_between_09:00_and_17:00",
+          "combined_datetime_must_be_in_future"
+        ]
+      },
+      "notes": {
+        "type": "string",
+        "required": false,
+        "selector": "#notes"
+      }
+    }
+  },
+  "actions": {
+    "create_booking": {
+      "steps": [
+        "open /index.html",
+        "fill fields from booking_schema.fields selectors",
+        "click button[type='submit'] inside #booking-form",
+        "read #form-status for confirmation"
+      ],
+      "success_signal_contains": [
+        "Booked for"
+      ]
+    },
+    "list_bookings": {
+      "source": "localStorage:northline_bookings",
+      "fallback_dom_selector": "#booking-list li"
+    },
+    "delete_booking": {
+      "steps": [
+        "open /admin.html",
+        "unlock admin via #admin-login-form",
+        "find row in #admin-booking-body",
+        "click button.table-action with matching data-id"
+      ]
+    }
+  },
+  "examples": {
+    "quick_booking_payload": {
+      "name": "Jordan Lee",
+      "email": "jordan@example.com",
+      "phone": "+1 (555) 010-2222",
+      "service": "Consultation",
+      "date": "2026-02-20",
+      "time": "10:30",
+      "notes": "First-time appointment"
+    }
+  }
+}

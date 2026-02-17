@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Northline Appointments</title>
+    <meta
+      name="description"
+      content="Book your appointment online in under a minute."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=DM+Serif+Display:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="grain"></div>
+    <main class="layout">
+      <section class="hero">
+        <p class="eyebrow">Fast scheduling</p>
+        <h1>Book your next appointment without the back-and-forth.</h1>
+        <p class="subtitle">
+          Pick a service, choose a time, and get instant confirmation.
+        </p>
+        <ul class="highlights">
+          <li>Instant confirmation</li>
+          <li>Respects business hours</li>
+          <li>Mobile-friendly booking</li>
+        </ul>
+      </section>
+
+      <section class="panel" aria-labelledby="booking-title">
+        <h2 id="booking-title">Book an Appointment</h2>
+        <form id="booking-form" novalidate>
+          <label>
+            Full Name
+            <input type="text" id="name" name="name" required minlength="2" />
+          </label>
+
+          <label>
+            Email
+            <input type="email" id="email" name="email" required />
+          </label>
+
+          <label>
+            Phone
+            <input type="tel" id="phone" name="phone" required pattern="[0-9+()\-\s]{7,}" />
+          </label>
+
+          <label>
+            Service
+            <select id="service" name="service" required>
+              <option value="">Select a service</option>
+              <option>Consultation</option>
+              <option>Follow-up Session</option>
+              <option>Premium Planning</option>
+              <option>Virtual Meeting</option>
+            </select>
+          </label>
+
+          <div class="row">
+            <label>
+              Date
+              <input type="date" id="date" name="date" required />
+            </label>
+            <label>
+              Time
+              <input type="time" id="time" name="time" required />
+            </label>
+          </div>
+
+          <label>
+            Notes (optional)
+            <textarea id="notes" name="notes" rows="3" placeholder="Anything we should know?"></textarea>
+          </label>
+
+          <button type="submit">Confirm Booking</button>
+          <p id="form-status" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="panel bookings" aria-labelledby="bookings-title">
+        <h2 id="bookings-title">Upcoming Bookings</h2>
+        <p class="muted">New appointments appear here.</p>
+        <ul id="booking-list"></ul>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
